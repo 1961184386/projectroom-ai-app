@@ -57,5 +57,7 @@ class ProjectUpdate(SQLModel):
 class ProjectRead(ProjectBase):
     id: uuid.UUID
     meeting_count: int = 0
+    last_meeting_time: Optional[datetime] = None
+    pending_action_count: int = 0
     created_at: datetime
     updated_at: datetime

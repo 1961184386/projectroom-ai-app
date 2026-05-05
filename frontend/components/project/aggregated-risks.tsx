@@ -61,6 +61,9 @@ export function AggregatedRisks({ projectId }: { projectId: string }) {
                     <Badge variant={levelVariantMap[item.level]}>{levelLabelMap[item.level]}</Badge>
                   </div>
                   <p className="text-xs text-gray-500">建议措施：{item.suggestion || "待补充"}</p>
+                  <Badge variant={item.confirmed ? "success" : "warning"}>
+                    {item.confirmed ? "已确认" : "待确认"}
+                  </Badge>
                   <Link
                     className="text-xs text-gray-700 underline-offset-2 hover:underline"
                     href={`/projects/${projectId}/meetings/${item.meeting_id}`}
@@ -79,6 +82,7 @@ export function AggregatedRisks({ projectId }: { projectId: string }) {
                     <th className="py-3 pr-4 font-medium">风险描述</th>
                     <th className="py-3 pr-4 font-medium">等级</th>
                     <th className="py-3 pr-4 font-medium">建议措施</th>
+                    <th className="py-3 pr-4 font-medium">确认</th>
                     <th className="py-3 font-medium">来源会议</th>
                   </tr>
                 </thead>
@@ -90,6 +94,11 @@ export function AggregatedRisks({ projectId }: { projectId: string }) {
                         <Badge variant={levelVariantMap[item.level]}>{levelLabelMap[item.level]}</Badge>
                       </td>
                       <td className="py-3 pr-4 text-gray-700">{item.suggestion || "待补充"}</td>
+                      <td className="py-3 pr-4">
+                        <Badge variant={item.confirmed ? "success" : "warning"}>
+                          {item.confirmed ? "已确认" : "待确认"}
+                        </Badge>
+                      </td>
                       <td className="py-3 text-gray-700">
                         <Link
                           className="font-medium text-gray-900 underline-offset-4 hover:underline"

@@ -63,6 +63,9 @@ export function AggregatedTodos({ projectId }: { projectId: string }) {
                   <p className="text-xs text-gray-500">
                     负责人：{item.owner || "待确认"} · 截止：{item.deadline || "待确认"}
                   </p>
+                  <Badge variant={item.confirmed ? "success" : "warning"}>
+                    {item.confirmed ? "已确认" : "待确认"}
+                  </Badge>
                   <Link
                     className="text-xs text-gray-700 underline-offset-2 hover:underline"
                     href={`/projects/${projectId}/meetings/${item.meeting_id}`}
@@ -82,6 +85,7 @@ export function AggregatedTodos({ projectId }: { projectId: string }) {
                     <th className="py-3 pr-4 font-medium">负责人</th>
                     <th className="py-3 pr-4 font-medium">截止日期</th>
                     <th className="py-3 pr-4 font-medium">优先级</th>
+                    <th className="py-3 pr-4 font-medium">确认</th>
                     <th className="py-3 font-medium">来源会议</th>
                   </tr>
                 </thead>
@@ -93,6 +97,11 @@ export function AggregatedTodos({ projectId }: { projectId: string }) {
                       <td className="py-3 pr-4 text-gray-700">{item.deadline || "待确认"}</td>
                       <td className="py-3 pr-4">
                         <Badge variant={priorityVariantMap[item.priority]}>{priorityLabelMap[item.priority]}</Badge>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <Badge variant={item.confirmed ? "success" : "warning"}>
+                          {item.confirmed ? "已确认" : "待确认"}
+                        </Badge>
                       </td>
                       <td className="py-3 text-gray-700">
                         <Link

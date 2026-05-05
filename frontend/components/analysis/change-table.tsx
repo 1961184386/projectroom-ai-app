@@ -1,5 +1,9 @@
+import { useState } from "react";
+
+import { ConfirmationToggle } from "@/components/analysis/confirmation-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/lib/api";
 import { MeetingAnalysis } from "@/lib/types";
 
 const typeVariantMap = {
@@ -16,7 +20,31 @@ const typeLabelMap = {
   unclear: "待明确"
 } as const;
 
-export function ChangeTable({ items }: { items: MeetingAnalysis["requirement_changes"] }) {
+export function ChangeTable({
+  items,
+  meetingId,
+  onAnalysisUpdated
+}: {
+  items: MeetingAnalysis["requirement_changes"];
+  meetingId: string;
+  onAnalysisUpdated: (analysis: MeetingAnalysis) => void;
+}) {
+  const [pendingIndex, setPendingIndex] = useState<number | null>(null);
+
+  async function handleConfirm(index: number, confirmed: boolean) {
+    setPendingIndex(index);
+    try {
+      const nextAnalysis = await api.confirmAnalysisItem(meetingId, {
+        item_type: "requirement_change",
+        item_index: index,
+        confirmed: !confirmed
+      });
+      onAnalysisUpdated(nextAnalysis);
+    } finally {
+      setPendingIndex(null);
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -33,7 +61,8 @@ export function ChangeTable({ items }: { items: MeetingAnalysis["requirement_cha
                   <th className="py-3 pr-4 font-medium">变更内容</th>
                   <th className="py-3 pr-4 font-medium">类型</th>
                   <th className="py-3 pr-4 font-medium">影响</th>
-                  <th className="py-3 font-medium">是否需确认</th>
+                  <th className="py-3 pr-4 font-medium">业务状态</th>
+                  <th className="py-3 font-medium">确认</th>
                 </tr>
               </thead>
               <tbody>
@@ -44,10 +73,17 @@ export function ChangeTable({ items }: { items: MeetingAnalysis["requirement_cha
                       <Badge variant={typeVariantMap[item.type]}>{typeLabelMap[item.type]}</Badge>
                     </td>
                     <td className="py-3 pr-4 text-gray-700">{item.impact_on_scope || "待补充"}</td>
-                    <td className="py-3">
+                    <td className="py-3 pr-4">
                       <Badge variant={item.need_confirmation ? "danger" : "success"}>
                         {item.need_confirmation ? "需确认" : "已明确"}
                       </Badge>
+                    </td>
+                    <td className="py-3">
+                      <ConfirmationToggle
+                        confirmed={item.confirmed}
+                        isSubmitting={pendingIndex === index}
+                        onClick={() => handleConfirm(index, item.confirmed)}
+                      />
                     </td>
                   </tr>
                 ))}

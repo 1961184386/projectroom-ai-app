@@ -8,7 +8,7 @@ export function Card({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("rounded-xl border border-gray-200 bg-white shadow-sm", className)}
+      className={cn("rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_20px_60px_-48px_rgba(15,23,42,0.5)]", className)}
       {...props}
     />
   );

@@ -47,6 +47,18 @@ def test_list_projects_returns_meeting_count_sorted(client):
     assert payload[1]["meeting_count"] == 0
 
 
+def test_list_projects_supports_stage_filter(client):
+    client.post("/api/projects", json={"name": "Discovery", "current_stage": "需求确认"})
+    build_project = client.post("/api/projects", json={"name": "Build", "current_stage": "开发中"}).json()["data"]
+
+    response = client.get("/api/projects?stage=开发中")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert len(payload) == 1
+    assert payload[0]["id"] == build_project["id"]
+
+
 def test_get_project_detail_and_missing_404(client):
     project = client.post("/api/projects", json={"name": "Detail Project"}).json()["data"]
 

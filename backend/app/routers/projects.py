@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session
 
 from app.database import get_session
@@ -31,9 +31,12 @@ def create_project_endpoint(
 
 
 @router.get("")
-def list_projects_endpoint(session: Session = Depends(get_session)):
+def list_projects_endpoint(
+    stage: str | None = Query(default=None),
+    session: Session = Depends(get_session),
+):
     try:
-        projects = list_projects(session)
+        projects = list_projects(session, stage=stage)
         return {"data": projects, "message": "ok"}
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to list projects.") from exc

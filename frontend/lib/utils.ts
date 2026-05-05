@@ -39,3 +39,14 @@ export function formatDateTime(input: string) {
     minute: "2-digit"
   }).format(new Date(input));
 }
+
+export function parseAcceptanceCriteria(input: string | null | undefined) {
+  if (!input) {
+    return [];
+  }
+
+  return input
+    .split(/[\n；;。]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}

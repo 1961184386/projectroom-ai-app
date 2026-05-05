@@ -1,5 +1,9 @@
+import { useState } from "react";
+
+import { ConfirmationToggle } from "@/components/analysis/confirmation-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/lib/api";
 import { MeetingAnalysis } from "@/lib/types";
 
 const priorityVariantMap = {
@@ -14,7 +18,31 @@ const priorityLabelMap = {
   low: "低"
 } as const;
 
-export function TodoTable({ items }: { items: MeetingAnalysis["action_items"] }) {
+export function TodoTable({
+  items,
+  meetingId,
+  onAnalysisUpdated
+}: {
+  items: MeetingAnalysis["action_items"];
+  meetingId: string;
+  onAnalysisUpdated: (analysis: MeetingAnalysis) => void;
+}) {
+  const [pendingIndex, setPendingIndex] = useState<number | null>(null);
+
+  async function handleConfirm(index: number, confirmed: boolean) {
+    setPendingIndex(index);
+    try {
+      const nextAnalysis = await api.confirmAnalysisItem(meetingId, {
+        item_type: "action_item",
+        item_index: index,
+        confirmed: !confirmed
+      });
+      onAnalysisUpdated(nextAnalysis);
+    } finally {
+      setPendingIndex(null);
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -32,7 +60,8 @@ export function TodoTable({ items }: { items: MeetingAnalysis["action_items"] })
                   <th className="py-3 pr-4 font-medium">负责人</th>
                   <th className="py-3 pr-4 font-medium">截止日期</th>
                   <th className="py-3 pr-4 font-medium">优先级</th>
-                  <th className="py-3 font-medium">状态</th>
+                  <th className="py-3 pr-4 font-medium">状态</th>
+                  <th className="py-3 font-medium">确认</th>
                 </tr>
               </thead>
               <tbody>
@@ -44,7 +73,14 @@ export function TodoTable({ items }: { items: MeetingAnalysis["action_items"] })
                     <td className="py-3 pr-4">
                       <Badge variant={priorityVariantMap[item.priority]}>{priorityLabelMap[item.priority]}</Badge>
                     </td>
-                    <td className="py-3 text-gray-700">{item.status === "pending" ? "待处理" : item.status}</td>
+                    <td className="py-3 pr-4 text-gray-700">{item.status === "pending" ? "待处理" : item.status}</td>
+                    <td className="py-3">
+                      <ConfirmationToggle
+                        confirmed={item.confirmed}
+                        isSubmitting={pendingIndex === index}
+                        onClick={() => handleConfirm(index, item.confirmed)}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>

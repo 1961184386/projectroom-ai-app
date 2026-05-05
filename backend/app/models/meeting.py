@@ -14,6 +14,8 @@ class MeetingBase(SQLModel):
     agenda: Optional[str] = None
     transcript_text: str = Field(min_length=1)
     analysis_status: str = Field(default="pending", max_length=50)
+    external_meeting_id: Optional[str] = Field(default=None, max_length=255)
+    external_platform: Optional[str] = Field(default=None, max_length=50)
 
     @field_validator("title", "transcript_text")
     @classmethod

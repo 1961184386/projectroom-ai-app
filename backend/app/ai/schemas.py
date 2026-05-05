@@ -3,14 +3,18 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class KeyDecision(BaseModel):
+class ConfirmableItem(BaseModel):
+    confirmed: bool = False
+
+
+class KeyDecision(ConfirmableItem):
     decision: str
     owner: str = ""
     impact: str = ""
     evidence: str = ""
 
 
-class ActionItem(BaseModel):
+class ActionItem(ConfirmableItem):
     task: str
     owner: str = ""
     deadline: str = ""
@@ -19,7 +23,7 @@ class ActionItem(BaseModel):
     evidence: str = ""
 
 
-class RequirementChange(BaseModel):
+class RequirementChange(ConfirmableItem):
     change: str
     type: Literal["new", "modified", "removed", "unclear"] = "unclear"
     impact_on_scope: str = ""
@@ -27,7 +31,7 @@ class RequirementChange(BaseModel):
     evidence: str = ""
 
 
-class Risk(BaseModel):
+class Risk(ConfirmableItem):
     risk: str
     level: Literal["high", "medium", "low"] = "medium"
     suggestion: str = ""

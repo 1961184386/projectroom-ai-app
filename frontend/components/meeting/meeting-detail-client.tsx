@@ -128,7 +128,13 @@ export function MeetingDetailClient({
             ) : analysisState.error ? (
               <ErrorState message={analysisState.error.message} />
             ) : analysisState.data ? (
-              <AnalysisResult analysis={analysisState.data} />
+              <AnalysisResult
+                analysis={analysisState.data}
+                meetingId={meetingId}
+                onAnalysisUpdated={(analysis) => {
+                  void analysisState.mutate(analysis, { revalidate: false });
+                }}
+              />
             ) : (
               <ErrorState message="分析结果加载失败" />
             )

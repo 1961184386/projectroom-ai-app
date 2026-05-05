@@ -54,6 +54,22 @@ Frontend: `http://localhost:3000`
 
 If needed, configure `NEXT_PUBLIC_API_BASE_URL` in `frontend/.env.local`. The default is `http://localhost:8000`.
 
+## Demo Walkthrough
+
+1. Start backend and frontend as described above.
+2. Open `http://localhost:3000/projects`.
+3. Click `快速体验` or `加载 Demo 数据`.
+4. Open the seeded demo project `智慧零售数字化升级`.
+5. Review the new tabbed project detail flow:
+   - `概览` for summary and project materials
+   - `会议记录` for imported meetings
+   - `任务清单 / 风险台账 / 需求变更 / 决策记录` for aggregated assets
+   - `验收标准` for acceptance checklist items
+6. Open a meeting detail page and inspect the AI analysis result.
+7. Toggle extracted items between `待确认` and `已确认` to demonstrate the confirmation workflow.
+8. Return to project detail to show confirmed status flowing into aggregated views.
+9. Open `项目问答` to demonstrate project-level Q&A grounded in saved meeting history.
+
 ## Test
 
 Backend tests:

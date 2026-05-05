@@ -5,10 +5,19 @@ import {
   AggregatedTodo,
   ApiResponse,
   ChatResponse,
+  ConnectionTestResult,
+  DashboardStats,
+  DemoSeedResponse,
+  DemoStatus,
+  ExternalMeetingCreateResponse,
+  IntegrationConfig,
+  IntegrationPlatformInfo,
   Meeting,
   MeetingAnalysis,
+  ProjectMaterial,
   ProjectSummary,
-  Project
+  Project,
+  TranscriptImportResult
 } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
@@ -49,7 +58,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  listProjects: () => request<Project[]>("/api/projects"),
+  listProjects: (stage?: string) =>
+    request<Project[]>(`/api/projects${stage ? `?stage=${encodeURIComponent(stage)}` : ""}`),
   getProject: (projectId: string) => request<Project>(`/api/projects/${projectId}`),
   createProject: (payload: Partial<Project>) =>
     request<Project>("/api/projects", {
@@ -69,6 +79,62 @@ export const api = {
     request<Meeting>(`/api/projects/${projectId}/meetings`, {
       method: "POST",
       body: JSON.stringify(payload)
+    }),
+  listIntegrationConfigs: () => request<IntegrationConfig[]>("/api/integrations/configs"),
+  saveIntegrationConfig: (payload: Partial<IntegrationConfig>) =>
+    request<IntegrationConfig>("/api/integrations/configs", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  deleteIntegrationConfig: (configId: string) =>
+    request<{ id: string }>(`/api/integrations/configs/${configId}`, {
+      method: "DELETE"
+    }),
+  getIntegrationInfo: (platform: string) =>
+    request<IntegrationPlatformInfo>(`/api/integrations/${platform}/info`),
+  testIntegrationConnection: (platform: string) =>
+    request<ConnectionTestResult>(`/api/integrations/${platform}/test`, {
+      method: "POST"
+    }),
+  createExternalMeeting: (
+    platform: string,
+    payload: {
+      project_id: string;
+      title: string;
+      start_time: string;
+      end_time: string;
+      participants: string[];
+      agenda?: string | null;
+    }
+  ) =>
+    request<ExternalMeetingCreateResponse>(`/api/integrations/${platform}/meetings`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  syncIntegrationMeetings: (platform: string, payload: { project_id: string; limit?: number }) =>
+    request<Meeting[]>(`/api/integrations/${platform}/meetings/sync`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  importIntegrationTranscript: (
+    platform: string,
+    externalMeetingId: string,
+    payload: { project_id: string; recording_id?: string | null; auto_analyze?: boolean }
+  ) =>
+    request<TranscriptImportResult>(`/api/integrations/${platform}/import/${externalMeetingId}`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  listProjectMaterials: (projectId: string) =>
+    request<ProjectMaterial[]>(`/api/projects/${projectId}/materials`),
+  createProjectMaterial: (projectId: string, payload: Partial<ProjectMaterial>) =>
+    request<ProjectMaterial>(`/api/projects/${projectId}/materials`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  deleteProjectMaterial: (projectId: string, materialId: string) =>
+    request<{ id: string }>(`/api/projects/${projectId}/materials/${materialId}`, {
+      method: "DELETE"
     }),
   listProjectTodos: (projectId: string) =>
     request<AggregatedTodo[]>(`/api/projects/${projectId}/todos`),
@@ -94,5 +160,23 @@ export const api = {
       method: "POST"
     }),
   getAnalysis: (meetingId: string) =>
-    request<MeetingAnalysis>(`/api/meetings/${meetingId}/analysis`)
+    request<MeetingAnalysis>(`/api/meetings/${meetingId}/analysis`),
+  confirmAnalysisItem: (
+    meetingId: string,
+    payload: {
+      item_type: "action_item" | "risk" | "requirement_change" | "key_decision";
+      item_index: number;
+      confirmed: boolean;
+    }
+  ) =>
+    request<MeetingAnalysis>(`/api/meetings/${meetingId}/analysis/confirm`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    }),
+  getDashboardStats: () => request<DashboardStats>("/api/dashboard/stats"),
+  getDemoStatus: () => request<DemoStatus>("/api/demo/status"),
+  seedDemoData: () =>
+    request<DemoSeedResponse>("/api/demo/seed", {
+      method: "POST"
+    })
 };

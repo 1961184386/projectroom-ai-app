@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.config import get_settings
 from app.database import engine
-from app.models import Meeting, MeetingAnalysis, Project
+from app.models import Meeting, MeetingAnalysis, Project, ProjectMaterial
 
 PROJECT_NAME = "智慧零售数字化升级"
 
@@ -409,8 +409,9 @@ def create_meeting(session: Session, project_id, fixture: dict) -> Meeting:
 
 def create_analysis(session: Session, meeting_id, fixture: dict) -> None:
     now = datetime.utcnow()
+    analysis_payload = dict(fixture["analysis"])
     analysis = MeetingAnalysis(
-        **fixture["analysis"],
+        **analysis_payload,
         meeting_id=meeting_id,
         created_at=now,
         updated_at=now,
@@ -419,18 +420,59 @@ def create_analysis(session: Session, meeting_id, fixture: dict) -> None:
     session.commit()
 
 
+def create_materials(session: Session, project_id) -> None:
+    now = datetime.utcnow()
+    materials = [
+        ProjectMaterial(
+            project_id=project_id,
+            title="项目范围说明（SOW 摘要）",
+            material_type="sow",
+            content="覆盖 POS 接入、库存中台、会员系统统一、订单服务联动，不含财务结算重构与门店硬件升级。",
+            created_at=now,
+            updated_at=now,
+        ),
+        ProjectMaterial(
+            project_id=project_id,
+            title="客户 RFP 核心诉求",
+            material_type="rfp",
+            content="要求 200 家门店统一数据口径，关键经营数据 T+0 可见，门店交易后库存 5 分钟内更新，支持跨渠道会员积分同步。",
+            created_at=now,
+            updated_at=now,
+        ),
+        ProjectMaterial(
+            project_id=project_id,
+            title="验收补充说明",
+            material_type="prd",
+            content="POC 阶段重点验证 POS 适配层、Kafka 实时链路与 CRM 数据映射准确性，并形成可复用交付模板。",
+            created_at=now,
+            updated_at=now,
+        ),
+    ]
+    session.add_all(materials)
+    session.commit()
+
+
+def seed_demo_data(session: Session) -> tuple[bool, Project]:
+    if project_exists(session):
+        project = session.exec(select(Project).where(Project.name == PROJECT_NAME)).one()
+        return False, project
+
+    project = create_project(session)
+    for fixture in MEETING_FIXTURES:
+        meeting = create_meeting(session, project.id, fixture)
+        create_analysis(session, meeting.id, fixture)
+    create_materials(session, project.id)
+    return True, project
+
+
 def main() -> None:
     ensure_sqlite_tables()
 
     with Session(engine) as session:
-        if project_exists(session):
+        seeded, project = seed_demo_data(session)
+        if not seeded:
             print(f"Demo project '{PROJECT_NAME}' already exists. Skipping seed.")
             return
-
-        project = create_project(session)
-        for fixture in MEETING_FIXTURES:
-            meeting = create_meeting(session, project.id, fixture)
-            create_analysis(session, meeting.id, fixture)
 
         print(f"Seeded demo project '{PROJECT_NAME}' with {len(MEETING_FIXTURES)} meetings and analyses.")
 

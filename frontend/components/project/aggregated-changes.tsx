@@ -67,6 +67,9 @@ export function AggregatedChanges({ projectId }: { projectId: string }) {
                     <Badge variant={item.need_confirmation ? "danger" : "success"}>
                       {item.need_confirmation ? "需确认" : "已明确"}
                     </Badge>
+                    <Badge variant={item.confirmed ? "success" : "warning"}>
+                      {item.confirmed ? "已确认" : "待确认"}
+                    </Badge>
                     <Link
                       className="text-xs text-gray-700 underline-offset-2 hover:underline"
                       href={`/projects/${projectId}/meetings/${item.meeting_id}`}
@@ -87,6 +90,7 @@ export function AggregatedChanges({ projectId }: { projectId: string }) {
                     <th className="py-3 pr-4 font-medium">类型</th>
                     <th className="py-3 pr-4 font-medium">影响</th>
                     <th className="py-3 pr-4 font-medium">是否需确认</th>
+                    <th className="py-3 pr-4 font-medium">确认</th>
                     <th className="py-3 font-medium">来源会议</th>
                   </tr>
                 </thead>
@@ -101,6 +105,11 @@ export function AggregatedChanges({ projectId }: { projectId: string }) {
                       <td className="py-3 pr-4">
                         <Badge variant={item.need_confirmation ? "danger" : "success"}>
                           {item.need_confirmation ? "需确认" : "已明确"}
+                        </Badge>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <Badge variant={item.confirmed ? "success" : "warning"}>
+                          {item.confirmed ? "已确认" : "待确认"}
                         </Badge>
                       </td>
                       <td className="py-3 text-gray-700">

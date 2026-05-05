@@ -19,6 +19,7 @@ class AggregatedTodo(BaseModel):
     priority: str = "medium"
     status: str = "pending"
     evidence: str = ""
+    confirmed: bool = False
 
 
 class AggregatedRisk(BaseModel):
@@ -29,6 +30,7 @@ class AggregatedRisk(BaseModel):
     level: str = "medium"
     suggestion: str = ""
     evidence: str = ""
+    confirmed: bool = False
 
 
 class AggregatedChange(BaseModel):
@@ -40,6 +42,7 @@ class AggregatedChange(BaseModel):
     impact_on_scope: str = ""
     need_confirmation: bool = True
     evidence: str = ""
+    confirmed: bool = False
 
 
 class AggregatedDecision(BaseModel):
@@ -50,6 +53,7 @@ class AggregatedDecision(BaseModel):
     owner: str = ""
     impact: str = ""
     evidence: str = ""
+    confirmed: bool = False
 
 
 def _list_project_analysis_rows(session: Session, project_id: UUID) -> list[tuple[Meeting, MeetingAnalysis]]:

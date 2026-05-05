@@ -1,5 +1,9 @@
+import { useState } from "react";
+
+import { ConfirmationToggle } from "@/components/analysis/confirmation-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { api } from "@/lib/api";
 import { MeetingAnalysis } from "@/lib/types";
 
 const levelVariantMap = {
@@ -14,7 +18,31 @@ const levelLabelMap = {
   low: "低"
 } as const;
 
-export function RiskTable({ items }: { items: MeetingAnalysis["risks"] }) {
+export function RiskTable({
+  items,
+  meetingId,
+  onAnalysisUpdated
+}: {
+  items: MeetingAnalysis["risks"];
+  meetingId: string;
+  onAnalysisUpdated: (analysis: MeetingAnalysis) => void;
+}) {
+  const [pendingIndex, setPendingIndex] = useState<number | null>(null);
+
+  async function handleConfirm(index: number, confirmed: boolean) {
+    setPendingIndex(index);
+    try {
+      const nextAnalysis = await api.confirmAnalysisItem(meetingId, {
+        item_type: "risk",
+        item_index: index,
+        confirmed: !confirmed
+      });
+      onAnalysisUpdated(nextAnalysis);
+    } finally {
+      setPendingIndex(null);
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -30,7 +58,8 @@ export function RiskTable({ items }: { items: MeetingAnalysis["risks"] }) {
                 <tr>
                   <th className="py-3 pr-4 font-medium">风险描述</th>
                   <th className="py-3 pr-4 font-medium">等级</th>
-                  <th className="py-3 font-medium">建议措施</th>
+                  <th className="py-3 pr-4 font-medium">建议措施</th>
+                  <th className="py-3 font-medium">确认</th>
                 </tr>
               </thead>
               <tbody>
@@ -40,7 +69,14 @@ export function RiskTable({ items }: { items: MeetingAnalysis["risks"] }) {
                     <td className="py-3 pr-4">
                       <Badge variant={levelVariantMap[item.level]}>{levelLabelMap[item.level]}</Badge>
                     </td>
-                    <td className="py-3 text-gray-700">{item.suggestion || "待补充"}</td>
+                    <td className="py-3 pr-4 text-gray-700">{item.suggestion || "待补充"}</td>
+                    <td className="py-3">
+                      <ConfirmationToggle
+                        confirmed={item.confirmed}
+                        isSubmitting={pendingIndex === index}
+                        onClick={() => handleConfirm(index, item.confirmed)}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>

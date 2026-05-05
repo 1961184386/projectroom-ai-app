@@ -3,6 +3,7 @@
 import Link from "next/link";
 import useSWR from "swr";
 
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/error-state";
 import { SkeletonCard } from "@/components/ui/skeleton-card";
@@ -46,6 +47,9 @@ export function AggregatedDecisions({ projectId }: { projectId: string }) {
                   <p className="text-sm font-medium text-gray-900">{item.decision}</p>
                   <p className="text-xs text-gray-500">负责人：{item.owner || "待确认"}</p>
                   <p className="text-xs text-gray-500">影响：{item.impact || "未补充影响说明"}</p>
+                  <Badge variant={item.confirmed ? "success" : "warning"}>
+                    {item.confirmed ? "已确认" : "待确认"}
+                  </Badge>
                   <Link
                     className="text-xs text-gray-700 underline-offset-2 hover:underline"
                     href={`/projects/${projectId}/meetings/${item.meeting_id}`}
@@ -60,7 +64,12 @@ export function AggregatedDecisions({ projectId }: { projectId: string }) {
             <div className="hidden space-y-4 sm:block">
               {items.map((item, index) => (
                 <div key={`${item.meeting_id}-${item.decision}-${index}`} className="rounded-lg border border-gray-200 p-4">
-                  <p className="font-medium text-gray-900">{item.decision}</p>
+                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                    <p className="font-medium text-gray-900">{item.decision}</p>
+                    <Badge variant={item.confirmed ? "success" : "warning"}>
+                      {item.confirmed ? "已确认" : "待确认"}
+                    </Badge>
+                  </div>
                   <p className="mt-2 text-sm text-gray-600">负责人：{item.owner || "待确认"}</p>
                   <p className="mt-1 text-sm text-gray-500">{item.impact || "未补充影响说明"}</p>
                   <p className="mt-3 text-sm text-gray-600">

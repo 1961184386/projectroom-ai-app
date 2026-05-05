@@ -2,12 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+}
+
 body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+  @apply bg-slate-50 text-slate-900 antialiased;
 }
 
 a {
   @apply text-inherit no-underline;
+}
+
+::selection {
+  background: rgba(20, 184, 166, 0.2);
 }
 
 @keyframes fade-in {

@@ -34,6 +34,22 @@ def build_oauth_headers(access_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {access_token}"}
 
 
+def validate_callback_url_signature(token: str, timestamp: str, nonce: str, signature: str) -> bool:
+    """Validate Tencent Meeting callback URL verification (GET request).
+
+    Algorithm: SHA1 of sorted(token, timestamp, nonce) joined as string.
+    """
+    params = sorted([token, timestamp, nonce])
+    raw = "".join(params).encode("utf-8")
+    expected = hashlib.sha1(raw).hexdigest()  # noqa: S324 — protocol requirement (SHA1)
+    return hmac.compare_digest(expected, signature)
+
+
 def validate_webhook_signature(token: str, timestamp: str, nonce: str, signature: str, body: bytes) -> bool:
-    expected = hashlib.sha256(token.encode("utf-8") + timestamp.encode("utf-8") + nonce.encode("utf-8") + body).hexdigest()
+    """Validate Tencent Meeting event delivery signature (POST request).
+
+    Algorithm: SHA256 of token + timestamp + nonce + body_bytes, all encoded as UTF-8.
+    """
+    raw = token.encode("utf-8") + timestamp.encode("utf-8") + nonce.encode("utf-8") + body
+    expected = hashlib.sha256(raw).hexdigest()
     return hmac.compare_digest(expected, signature)

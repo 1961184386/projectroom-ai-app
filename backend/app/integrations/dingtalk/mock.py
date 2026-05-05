@@ -87,6 +87,10 @@ class DingTalkMockConnector(AbstractConnector):
         del headers, body
         return True
 
+    def validate_callback_url(self, params: dict[str, str]) -> bool:
+        del params
+        return True
+
     def handle_webhook(self, payload: dict[str, Any]) -> dict[str, Any]:
         event = payload.get("event_type", "cloud_recording.completed")
         meeting_id = str(payload.get("meeting_id", "dt_mock_webhook"))

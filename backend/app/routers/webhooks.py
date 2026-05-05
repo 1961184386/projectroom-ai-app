@@ -1,14 +1,46 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlmodel import Session
 
 from app.database import get_session
-from app.services.integration_service import handle_webhook, import_transcript
+from app.integrations import IntegrationManager
+from app.services.integration_service import get_config_by_platform, handle_webhook, import_transcript
 from app.services.project_service import get_project_or_none
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 
+
+# ---------- GET: callback URL verification ----------
+
+@router.get("/tencent-meeting")
+def verify_tencent_callback_url(
+    timestamp: str = Query(...),
+    nonce: str = Query(...),
+    signature: str = Query(...),
+    session: Session = Depends(get_session),
+):
+    config = get_config_by_platform(session, "tencent_meeting")
+    connector = IntegrationManager().get_connector("tencent_meeting", config)
+    if connector.validate_callback_url({"timestamp": timestamp, "nonce": nonce, "signature": signature}):
+        return timestamp
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Signature verification failed.")
+
+
+@router.get("/dingtalk")
+def verify_dingtalk_callback_url(
+    timestamp: str = Query(...),
+    sign: str = Query(...),
+    session: Session = Depends(get_session),
+):
+    config = get_config_by_platform(session, "dingtalk")
+    connector = IntegrationManager().get_connector("dingtalk", config)
+    if connector.validate_callback_url({"timestamp": timestamp, "sign": sign}):
+        return timestamp
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Signature verification failed.")
+
+
+# ---------- POST: event delivery ----------
 
 @router.post("/tencent-meeting")
 async def receive_tencent_webhook(request: Request, session: Session = Depends(get_session)):

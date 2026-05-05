@@ -49,5 +49,14 @@ class AbstractConnector(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def validate_callback_url(self, params: dict[str, str]) -> bool:
+        """Validate platform callback URL verification (GET request).
+
+        Tencent Meeting sends: timestamp, nonce, signature as query params.
+        DingTalk sends similar verification during event subscription setup.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def handle_webhook(self, payload: dict[str, Any]) -> dict[str, Any]:
         raise NotImplementedError

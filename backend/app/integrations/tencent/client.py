@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 
 from app.integrations.base import AbstractConnector
-from app.integrations.tencent.auth import build_enterprise_jwt_headers, build_oauth_headers, validate_webhook_signature
+from app.integrations.tencent.auth import build_enterprise_jwt_headers, build_oauth_headers, validate_callback_url_signature, validate_webhook_signature
 from app.integrations.types import (
     ConnectionTestResult,
     ConnectorHealth,
@@ -170,6 +170,22 @@ class TencentMeetingConnector(AbstractConnector):
         if not all([timestamp, nonce, signature]):
             return False
         return validate_webhook_signature(token, timestamp, nonce, signature, body)
+
+    def validate_callback_url(self, params: dict[str, str]) -> bool:
+        """Validate Tencent Meeting callback URL verification (GET request).
+
+        Tencent Meeting sends: timestamp, nonce, signature as query string params.
+        Algorithm: SHA1(sorted(token, timestamp, nonce)).
+        """
+        token = self.config.get("webhook_token") or self.settings.tencent_meeting_webhook_token
+        if not token:
+            return False
+        timestamp = params.get("timestamp", "")
+        nonce = params.get("nonce", "")
+        signature = params.get("signature", "")
+        if not all([timestamp, nonce, signature]):
+            return False
+        return validate_callback_url_signature(token, timestamp, nonce, signature)
 
     def handle_webhook(self, payload: dict[str, Any]) -> dict[str, Any]:
         event = payload.get("event", payload.get("event_type", ""))

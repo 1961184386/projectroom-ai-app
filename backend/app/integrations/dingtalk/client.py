@@ -168,6 +168,21 @@ class DingTalkConnector(AbstractConnector):
             return False
         return validate_webhook_signature(token, timestamp, signature)
 
+    def validate_callback_url(self, params: dict[str, str]) -> bool:
+        """Validate DingTalk callback URL verification.
+
+        DingTalk sends encrypted challenge during event subscription setup.
+        For now, delegate to validate_webhook style check on query params.
+        """
+        token = self.config.get("webhook_token") or self.settings.dingtalk_webhook_token
+        if not token:
+            return False
+        timestamp = params.get("timestamp", "")
+        signature = params.get("sign", "")
+        if not all([timestamp, signature]):
+            return False
+        return validate_webhook_signature(token, timestamp, signature)
+
     def handle_webhook(self, payload: dict[str, Any]) -> dict[str, Any]:
         event = payload.get("EventType", payload.get("eventType", payload.get("event_type", "")))
         meeting_id = str(payload.get("meetingId") or payload.get("meeting_id") or "")

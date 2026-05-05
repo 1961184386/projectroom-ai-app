@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./projectroom.db"
     frontend_url: str = "http://localhost:3000"
     openai_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com/v1"
     openai_model: str = "gpt-4o"
 
     model_config = SettingsConfigDict(

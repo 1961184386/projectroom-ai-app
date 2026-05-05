@@ -5,34 +5,35 @@ import useSWR from "swr";
 
 import { AnalysisStatusBadge } from "@/components/meeting/analysis-status-badge";
 import { PlatformBadge } from "@/components/meeting/platform-badge";
+import { AggregatedChanges } from "@/components/project/aggregated-changes";
+import { AggregatedDecisions } from "@/components/project/aggregated-decisions";
+import { AggregatedRisks } from "@/components/project/aggregated-risks";
+import { ProjectSummary } from "@/components/project/project-summary";
+import { AggregatedTodos } from "@/components/project/aggregated-todos";
 import { StageBadge } from "@/components/project/stage-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonCard } from "@/components/ui/skeleton-card";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
-
-function PlaceholderSection({ title }: { title: string }) {
-  return (
-    <Card className="opacity-70">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-gray-500">完成会议 AI 分析后自动汇总</p>
-      </CardContent>
-    </Card>
-  );
-}
 
 export function ProjectDetailClient({ projectId }: { projectId: string }) {
   const projectState = useSWR(`/api/projects/${projectId}`, () => api.getProject(projectId));
   const meetingsState = useSWR(`/api/projects/${projectId}/meetings`, () => api.listMeetings(projectId));
 
   if (projectState.isLoading || meetingsState.isLoading) {
-    return <Spinner />;
+    return (
+      <div className="space-y-6">
+        <SkeletonCard lines={3} hasButton />
+        <SkeletonCard lines={4} />
+        <div className="grid gap-6 md:grid-cols-2">
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={4} />
+        </div>
+      </div>
+    );
   }
 
   if (projectState.error || meetingsState.error) {
@@ -59,27 +60,29 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
             </div>
             <div className="flex items-center gap-3">
               <StageBadge stage={project.current_stage} />
-              <Button disabled variant="secondary">
-                项目问答
-              </Button>
+              <Link href={`/projects/${projectId}/chat`}>
+                <Button variant="secondary">项目问答</Button>
+              </Link>
             </div>
           </div>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-3">
-          <div>
+          <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-4">
             <h2 className="mb-2 text-sm font-medium text-gray-500">项目目标</h2>
             <p className="text-sm text-gray-700">{project.goal || "暂无项目目标"}</p>
           </div>
-          <div>
+          <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-4">
             <h2 className="mb-2 text-sm font-medium text-gray-500">项目描述</h2>
             <p className="text-sm text-gray-700">{project.description || "暂无项目描述"}</p>
           </div>
-          <div>
+          <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-4">
             <h2 className="mb-2 text-sm font-medium text-gray-500">验收标准</h2>
             <p className="text-sm text-gray-700">{project.acceptance_criteria || "暂无验收标准"}</p>
           </div>
         </CardContent>
       </Card>
+
+      <ProjectSummary projectId={projectId} />
 
       <Card>
         <CardHeader className="flex-row items-center justify-between">
@@ -120,10 +123,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <PlaceholderSection title="任务清单" />
-        <PlaceholderSection title="风险台账" />
-        <PlaceholderSection title="需求变更" />
-        <PlaceholderSection title="决策记录" />
+        <AggregatedTodos projectId={projectId} />
+        <AggregatedRisks projectId={projectId} />
+        <AggregatedChanges projectId={projectId} />
+        <AggregatedDecisions projectId={projectId} />
       </div>
     </div>
   );

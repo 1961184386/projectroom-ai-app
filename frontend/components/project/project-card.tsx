@@ -8,7 +8,7 @@ import { formatRelativeTime } from "@/lib/utils";
 
 export function ProjectCard({ project }: { project: Project }) {
   return (
-    <Card className="h-full">
+    <Card className="h-full border-gray-200 transition-shadow transition-colors hover:border-gray-300 hover:shadow-md hover:shadow-gray-200/70">
       <CardHeader className="gap-3">
         <div className="flex items-start justify-between gap-3">
           <CardTitle className="text-xl">{project.name}</CardTitle>

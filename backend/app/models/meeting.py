@@ -31,8 +31,21 @@ class Meeting(MeetingBase, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 
-class MeetingCreate(MeetingBase):
-    pass
+class MeetingCreate(SQLModel):
+    title: str = Field(min_length=1, max_length=255)
+    platform: str = Field(default="manual", max_length=50)
+    meeting_time: datetime
+    participants: Optional[str] = None
+    agenda: Optional[str] = None
+    transcript_text: str = Field(min_length=1)
+
+    @field_validator("title", "transcript_text")
+    @classmethod
+    def validate_required_text(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("This field is required.")
+        return stripped
 
 
 class MeetingRead(MeetingBase):

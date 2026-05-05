@@ -5,8 +5,10 @@ from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 from app.config import get_settings
+from app.models.analysis import MeetingAnalysis
 from app.models.meeting import Meeting
 from app.models.project import Project
+from app.models.project_summary import ProjectSummary
 
 config = context.config
 settings = get_settings()

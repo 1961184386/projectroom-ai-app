@@ -77,13 +77,14 @@ These are not scheduled. Claude will create tickets when Phase 3 is complete.
 
 | Ticket | Status |
 |---|---|
-| TICKET-001 | 🟡 Ready for Codex |
-| TICKET-002 | ⬜ Pending TICKET-001 |
-| TICKET-003 | ⬜ Pending TICKET-002 |
-| TICKET-004 | ⬜ Pending TICKET-003 |
-| TICKET-005 | ⬜ Pending TICKET-003 |
-| TICKET-006 | ⬜ Pending TICKET-004 |
-| TICKET-007 | ⬜ Pending TICKET-005 |
+| TICKET-001 | ✅ PASS |
+| TICKET-001-fix-001 | ✅ PASS |
+| TICKET-002 | ✅ PASS |
+| TICKET-003 | ✅ PASS |
+| TICKET-004 | ✅ PASS |
+| TICKET-005 | ✅ PASS |
+| TICKET-006 | ✅ PASS |
+| TICKET-007 | ✅ PASS |
 
 ## Review Cadence
 

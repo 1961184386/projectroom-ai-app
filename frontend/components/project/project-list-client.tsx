@@ -5,14 +5,20 @@ import useSWR from "swr";
 import { ProjectCard } from "@/components/project/project-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonCard } from "@/components/ui/skeleton-card";
 import { api } from "@/lib/api";
 
 export function ProjectListClient() {
   const { data, error, isLoading } = useSWR("/api/projects", api.listProjects);
 
   if (isLoading) {
-    return <Spinner />;
+    return (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <SkeletonCard lines={3} hasButton />
+        <SkeletonCard lines={3} hasButton />
+        <SkeletonCard lines={3} hasButton />
+      </div>
+    );
   }
 
   if (error) {

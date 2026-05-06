@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, DragEvent, FormEvent, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { parseTranscript, type ParsedTranscript } from "@/lib/parse-transcript";
 
 const platformOptions = [
   { value: "manual", label: "手动输入" },
@@ -20,11 +21,20 @@ const platformOptions = [
 
 export function CreateMeetingForm({ projectId }: { projectId: string }) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [platform, setPlatform] = useState("manual");
+  const [title, setTitle] = useState("");
+  const [meetingTime, setMeetingTime] = useState("");
+  const [participants, setParticipants] = useState("");
+  const [agenda, setAgenda] = useState("");
   const [transcriptText, setTranscriptText] = useState("");
   const [externalMeetingId, setExternalMeetingId] = useState("");
+  const [uploadedFileName, setUploadedFileName] = useState("");
+  const [parseWarning, setParseWarning] = useState("");
+  const [detectedFormat, setDetectedFormat] = useState<ParsedTranscript["detectedFormat"] | null>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   const platformHint = useMemo(() => {
     switch (platform) {
@@ -45,6 +55,85 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
   function getOptionalStringValue(formData: FormData, key: string) {
     const value = String(formData.get(key) ?? "").trim();
     return value ? value : null;
+  }
+
+  function formatIsoToDatetimeLocal(value: string) {
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "";
+    }
+
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(parsedDate.getDate()).padStart(2, "0");
+    const hours = String(parsedDate.getHours()).padStart(2, "0");
+    const minutes = String(parsedDate.getMinutes()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  function applyParsedTranscript(parsed: ParsedTranscript, fileName: string) {
+    setUploadedFileName(fileName);
+    setDetectedFormat(parsed.detectedFormat);
+    setParseWarning(parsed.warning ?? "");
+
+    if (parsed.title) {
+      setTitle(parsed.title);
+    }
+
+    if (parsed.meetingTime) {
+      const formattedMeetingTime = formatIsoToDatetimeLocal(parsed.meetingTime);
+      if (formattedMeetingTime) {
+        setMeetingTime(formattedMeetingTime);
+      }
+    }
+
+    if (parsed.participants.length > 0) {
+      setParticipants(parsed.participants.join(", "));
+    }
+
+    setTranscriptText(parsed.transcriptText);
+  }
+
+  async function handleTranscriptFile(file?: File) {
+    if (!file) {
+      return;
+    }
+
+    if (!file.name.toLowerCase().endsWith(".txt")) {
+      setError("仅支持上传 .txt 转写文件");
+      return;
+    }
+
+    try {
+      setError("");
+      const fileContent = await file.text();
+      const parsed = parseTranscript(fileContent, file.name);
+      applyParsedTranscript(parsed, file.name);
+    } catch {
+      setError("读取转写文件失败，请重试");
+    }
+  }
+
+  function clearUploadedFile() {
+    setUploadedFileName("");
+    setParseWarning("");
+    setDetectedFormat(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function handleFileInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const [file] = Array.from(event.target.files ?? []);
+    void handleTranscriptFile(file);
+  }
+
+  function handleFileDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setIsDraggingFile(false);
+    const [file] = Array.from(event.dataTransfer.files ?? []);
+    void handleTranscriptFile(file);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -107,11 +196,18 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="title">会议主题</Label>
-              <Input id="title" name="title" required />
+              <Input id="title" name="title" required value={title} onChange={(event) => setTitle(event.target.value)} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="meeting_time">会议时间</Label>
-              <Input id="meeting_time" name="meeting_time" type="datetime-local" required />
+              <Input
+                id="meeting_time"
+                name="meeting_time"
+                type="datetime-local"
+                required
+                value={meetingTime}
+                onChange={(event) => setMeetingTime(event.target.value)}
+              />
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
@@ -149,14 +245,65 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="participants">参会人</Label>
-            <Input id="participants" name="participants" placeholder="例如：张三, 李四, 王五" />
+            <Input
+              id="participants"
+              name="participants"
+              placeholder="例如：张三, 李四, 王五"
+              value={participants}
+              onChange={(event) => setParticipants(event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="agenda">会议议题</Label>
-            <Textarea id="agenda" name="agenda" rows={4} />
+            <Textarea id="agenda" name="agenda" rows={4} value={agenda} onChange={(event) => setAgenda(event.target.value)} />
           </div>
           {platform === "manual" ? (
             <div className="space-y-2">
+              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">上传腾讯会议转写文件</p>
+                    <p className="text-sm text-slate-500">支持拖拽或选择 `.txt` 文件，自动识别标题、时间、参会人与转写内容。</p>
+                  </div>
+                  {uploadedFileName ? (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="info">{uploadedFileName}</Badge>
+                      <Button type="button" variant="ghost" size="sm" onClick={clearUploadedFile}>
+                        清除
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+                <Label
+                  htmlFor="transcript_file"
+                  className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-8 text-center transition ${
+                    isDraggingFile
+                      ? "border-teal-400 bg-teal-50 text-teal-900"
+                      : "border-slate-300 bg-white/80 text-slate-600 hover:border-slate-400 hover:bg-white"
+                  }`}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsDraggingFile(true);
+                  }}
+                  onDragLeave={() => setIsDraggingFile(false)}
+                  onDrop={handleFileDrop}
+                >
+                  <input
+                    ref={fileInputRef}
+                    id="transcript_file"
+                    type="file"
+                    accept=".txt,text/plain"
+                    className="sr-only"
+                    onChange={handleFileInputChange}
+                  />
+                  <span className="text-sm font-medium">拖拽文件到这里，或点击选择 `.txt` 文件</span>
+                  <span className="mt-2 text-xs text-slate-500">推荐直接上传腾讯会议导出的转写文本，系统会先在浏览器端完成解析。</span>
+                </Label>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  {detectedFormat ? <Badge variant="default">识别格式：{detectedFormat}</Badge> : null}
+                  {parseWarning ? <span className="text-amber-700">{parseWarning}</span> : null}
+                </div>
+              </div>
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="transcript_text">会议转写内容</Label>
                 <Badge variant={transcriptText.length > 1000 ? "info" : "default"}>

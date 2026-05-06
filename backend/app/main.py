@@ -7,6 +7,7 @@ from app.config import get_settings
 from app.database import create_db_and_tables
 from app.routers.aggregation import router as aggregation_router
 from app.routers.analysis import router as analysis_router
+from app.routers.auth import router as auth_router
 from app.routers.chat import router as chat_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.demo import router as demo_router
@@ -45,6 +46,7 @@ def health_check():
 app.include_router(projects_router)
 app.include_router(meetings_router)
 app.include_router(analysis_router)
+app.include_router(auth_router)
 app.include_router(aggregation_router)
 app.include_router(chat_router)
 app.include_router(summary_router)

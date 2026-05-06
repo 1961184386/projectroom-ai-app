@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import "@/app/globals.css";
-import { Button } from "@/components/ui/button";
+import { HeaderActions } from "@/components/layout/header-actions";
 
 export const metadata: Metadata = {
   title: "ProjectRoom AI",
@@ -25,14 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </svg>
                 <span>ProjectRoom AI</span>
               </Link>
-              <div className="flex items-center gap-3">
-                <Link href="/settings/integrations" className="text-sm text-white/90 transition hover:text-white">
-                  集成设置
-                </Link>
-                <Link href="/projects/new">
-                  <Button className="border border-white/15 bg-white text-slate-900 hover:bg-slate-100">新建项目</Button>
-                </Link>
-              </div>
+              <HeaderActions />
             </div>
           </header>
           <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">{children}</main>

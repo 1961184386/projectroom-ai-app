@@ -216,7 +216,6 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
               <Select
                 id="platform"
                 name="platform"
-                defaultValue="manual"
                 value={platform}
                 onChange={(event) => setPlatform(event.target.value)}
               >

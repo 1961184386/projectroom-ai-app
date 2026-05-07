@@ -175,15 +175,15 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
         setMeetingTime(formattedTime);
       }
     }
-    if (parsed.url) {
-      setExternalMeetingId(parsed.url);
-    }
 
-    // Auto-detect platform from URL
-    if (parsed.sourceType === "tencent_meeting_link") {
-      setPlatform("tencent_meeting");
-    } else if (parsed.sourceType === "dingtalk_link") {
-      setPlatform("dingtalk");
+    // Keep platform as "manual" — the link provides metadata only.
+    // The user should paste the actual transcript text in the textarea below.
+    // The link URL is available for reference in meetingLinkInfo.
+    if (parsed.url && !transcriptText) {
+      // Pre-populate transcript textarea with a helpful header + the link
+      setTranscriptText(
+        `会议转写链接：${parsed.url}\n会议标题：${parsed.title || "未知"}\n会议时间：${parsed.date || "未知"}\n\n（请在下方粘贴完整的转写文本内容，或上传转写文件）\n`
+      );
     }
   }
 

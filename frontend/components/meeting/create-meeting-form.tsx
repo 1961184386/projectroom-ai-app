@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ChangeEvent, DragEvent, FormEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -153,12 +153,13 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
     void handleTranscriptFile(file);
   }
 
-  function handleParseMeetingLink() {
+  function handleParseMeetingLink(text: string = meetingLinkText) {
     setError("");
     setParseWarning("");
-    if (!meetingLinkText.trim()) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
 
-    const parsed = parseMeetingLink(meetingLinkText);
+    const parsed = parseMeetingLink(trimmed);
     setMeetingLinkInfo(parsed);
 
     if (parsed.warning) {
@@ -177,15 +178,28 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
     }
 
     // Keep platform as "manual" — the link provides metadata only.
-    // The user should paste the actual transcript text in the textarea below.
-    // The link URL is available for reference in meetingLinkInfo.
     if (parsed.url && !transcriptText) {
-      // Pre-populate transcript textarea with a helpful header + the link
       setTranscriptText(
         `会议转写链接：${parsed.url}\n会议标题：${parsed.title || "未知"}\n会议时间：${parsed.date || "未知"}\n\n（请在下方粘贴完整的转写文本内容，或上传转写文件）\n`
       );
     }
   }
+
+  const doParseMeetingLink = useCallback(handleParseMeetingLink, [
+    meetingLinkText, transcriptText, formatIsoToDatetimeLocal
+  ]);
+
+  // Auto-parse on paste: debounce 500ms after meetingLinkText changes
+  useEffect(() => {
+    if (!meetingLinkText.trim()) {
+      setMeetingLinkInfo(null);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      doParseMeetingLink();
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [meetingLinkText, doParseMeetingLink]);
 
   async function handleFetchTranscriptFromLink() {
     if (!meetingLinkInfo?.url) return;
@@ -402,6 +416,15 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
                   id="meeting_link"
                   value={meetingLinkText}
                   onChange={(event) => setMeetingLinkText(event.target.value)}
+                  onPaste={(event) => {
+                    // Wait for the paste to commit, then parse immediately
+                    window.setTimeout(() => {
+                      const textarea = event.currentTarget;
+                      if (textarea.value.trim()) {
+                        doParseMeetingLink(textarea.value);
+                      }
+                    }, 0);
+                  }}
                   rows={3}
                   className="rounded-xl border-slate-200 bg-white text-[14px] leading-6"
                   placeholder={`粘贴腾讯会议转写链接信息，例如：
@@ -410,14 +433,6 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
 转写文件：https://meeting.tencent.com/ctm/ld68rgD074`}
                 />
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleParseMeetingLink}
-                  >
-                    解析链接信息
-                  </Button>
                   {meetingLinkInfo?.url ? (
                     <Button
                       type="button"

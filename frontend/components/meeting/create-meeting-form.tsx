@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { parseFileContent, type ParsedFileContent } from "@/lib/parse-file-content";
 import { parseTranscript, type ParsedTranscript } from "@/lib/parse-transcript";
 
 const platformOptions = [
@@ -34,6 +35,7 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [parseWarning, setParseWarning] = useState("");
   const [detectedFormat, setDetectedFormat] = useState<ParsedTranscript["detectedFormat"] | null>(null);
+  const [fileSourceType, setFileSourceType] = useState<ParsedFileContent["sourceType"]>("unknown");
   const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   const platformHint = useMemo(() => {
@@ -100,18 +102,27 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
       return;
     }
 
-    if (!file.name.toLowerCase().endsWith(".txt")) {
-      setError("仅支持上传 .txt 转写文件");
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".txt") && !name.endsWith(".docx") && !name.endsWith(".pdf")) {
+      setError("仅支持上传 .txt、.docx、.pdf 文件");
       return;
     }
 
     try {
       setError("");
-      const fileContent = await file.text();
-      const parsed = parseTranscript(fileContent, file.name);
-      applyParsedTranscript(parsed, file.name);
+      const parsed = await parseFileContent(file);
+      setFileSourceType(parsed.sourceType);
+
+      if (!parsed.text.trim()) {
+        setError(parsed.warning ?? "文件内容为空，请检查后重试");
+        return;
+      }
+
+      // Run transcript parser on extracted text
+      const transcriptParsed = parseTranscript(parsed.text, file.name);
+      applyParsedTranscript(transcriptParsed, file.name);
     } catch {
-      setError("读取转写文件失败，请重试");
+      setError("读取文件失败，请重试");
     }
   }
 
@@ -119,6 +130,7 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
     setUploadedFileName("");
     setParseWarning("");
     setDetectedFormat(null);
+    setFileSourceType("unknown");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -261,8 +273,8 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
               <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-slate-900">上传腾讯会议转写文件</p>
-                    <p className="text-sm text-slate-500">支持拖拽或选择 `.txt` 文件，自动识别标题、时间、参会人与转写内容。</p>
+                    <p className="text-sm font-medium text-slate-900">上传会议转写文件</p>
+                    <p className="text-sm text-slate-500">支持拖拽或选择 `.txt` `.docx` `.pdf` 文件，自动识别标题、时间、参会人与转写内容。</p>
                   </div>
                   {uploadedFileName ? (
                     <div className="flex items-center gap-2">
@@ -291,14 +303,15 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
                     ref={fileInputRef}
                     id="transcript_file"
                     type="file"
-                    accept=".txt,text/plain"
+                    accept=".txt,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
                     className="sr-only"
                     onChange={handleFileInputChange}
                   />
-                  <span className="text-sm font-medium">拖拽文件到这里，或点击选择 `.txt` 文件</span>
-                  <span className="mt-2 text-xs text-slate-500">推荐直接上传腾讯会议导出的转写文本，系统会先在浏览器端完成解析。</span>
+                  <span className="text-sm font-medium">拖拽文件到这里，或点击选择 `.txt` `.docx` `.pdf` 文件</span>
+                  <span className="mt-2 text-xs text-slate-500">推荐直接上传腾讯会议导出的转写文本或会议纪要文档，系统会先在浏览器端完成文本提取与解析。</span>
                 </Label>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  {fileSourceType !== "unknown" ? <Badge variant="default">文件类型：{fileSourceType.toUpperCase()}</Badge> : null}
                   {detectedFormat ? <Badge variant="default">识别格式：{detectedFormat}</Badge> : null}
                   {parseWarning ? <span className="text-amber-700">{parseWarning}</span> : null}
                 </div>

@@ -178,5 +178,16 @@ export const api = {
   seedDemoData: () =>
     request<DemoSeedResponse>("/api/demo/seed", {
       method: "POST"
+    }),
+  fetchTranscriptFromUrl: (url: string) =>
+    request<{
+      transcript_text: string | null;
+      title: string | null;
+      meeting_time: string | null;
+      participants: string | null;
+      warning?: string;
+    }>("/api/meetings/fetch-transcript", {
+      method: "POST",
+      body: JSON.stringify({ url })
     })
 };

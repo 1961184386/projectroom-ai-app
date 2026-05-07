@@ -12,6 +12,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { parseFileContent, type ParsedFileContent } from "@/lib/parse-file-content";
+import { parseMeetingLink, type MeetingLinkInfo } from "@/lib/parse-meeting-link";
 import { parseTranscript, type ParsedTranscript } from "@/lib/parse-transcript";
 
 const platformOptions = [
@@ -37,6 +38,10 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
   const [detectedFormat, setDetectedFormat] = useState<ParsedTranscript["detectedFormat"] | null>(null);
   const [fileSourceType, setFileSourceType] = useState<ParsedFileContent["sourceType"]>("unknown");
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [meetingLinkText, setMeetingLinkText] = useState("");
+  const [meetingLinkInfo, setMeetingLinkInfo] = useState<MeetingLinkInfo | null>(null);
+  const [isFetchingTranscript, setIsFetchingTranscript] = useState(false);
+  const [fetchTranscriptError, setFetchTranscriptError] = useState("");
 
   const platformHint = useMemo(() => {
     switch (platform) {
@@ -146,6 +151,69 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
     setIsDraggingFile(false);
     const [file] = Array.from(event.dataTransfer.files ?? []);
     void handleTranscriptFile(file);
+  }
+
+  function handleParseMeetingLink() {
+    setError("");
+    setParseWarning("");
+    if (!meetingLinkText.trim()) return;
+
+    const parsed = parseMeetingLink(meetingLinkText);
+    setMeetingLinkInfo(parsed);
+
+    if (parsed.warning) {
+      setParseWarning(parsed.warning);
+    }
+
+    // Auto-fill form fields from link info
+    if (parsed.title) {
+      setTitle(parsed.title);
+    }
+    if (parsed.date) {
+      const formattedTime = formatIsoToDatetimeLocal(parsed.date);
+      if (formattedTime) {
+        setMeetingTime(formattedTime);
+      }
+    }
+    if (parsed.url) {
+      setExternalMeetingId(parsed.url);
+    }
+
+    // Auto-detect platform from URL
+    if (parsed.sourceType === "tencent_meeting_link") {
+      setPlatform("tencent_meeting");
+    } else if (parsed.sourceType === "dingtalk_link") {
+      setPlatform("dingtalk");
+    }
+  }
+
+  async function handleFetchTranscriptFromLink() {
+    if (!meetingLinkInfo?.url) return;
+
+    setIsFetchingTranscript(true);
+    setFetchTranscriptError("");
+    setError("");
+
+    try {
+      const result = await api.fetchTranscriptFromUrl(meetingLinkInfo.url);
+      if (result.transcript_text) {
+        setTranscriptText(result.transcript_text);
+        if (result.title && !title) setTitle(result.title);
+        if (result.meeting_time && !meetingTime) {
+          const formattedTime = formatIsoToDatetimeLocal(result.meeting_time);
+          if (formattedTime) setMeetingTime(formattedTime);
+        }
+        if (result.participants && !participants) setParticipants(result.participants);
+      } else if (result.warning) {
+        setFetchTranscriptError(result.warning);
+      } else {
+        setFetchTranscriptError("未能从链接获取到转写内容，请手动粘贴转写文本。");
+      }
+    } catch {
+      setFetchTranscriptError("获取转写内容失败，请检查链接可访问性，或手动粘贴转写文本。");
+    } finally {
+      setIsFetchingTranscript(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -315,6 +383,56 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
                   {detectedFormat ? <Badge variant="default">识别格式：{detectedFormat}</Badge> : null}
                   {parseWarning ? <span className="text-amber-700">{parseWarning}</span> : null}
                 </div>
+              </div>
+              {/* Meeting Link Paste */}
+              <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label htmlFor="meeting_link">粘贴会议链接信息</Label>
+                  {meetingLinkInfo ? (
+                    <Badge variant="info">
+                      {meetingLinkInfo.sourceType === "tencent_meeting_link"
+                        ? "腾讯会议链接"
+                        : meetingLinkInfo.sourceType === "dingtalk_link"
+                          ? "钉钉会议链接"
+                          : "通用链接"}
+                    </Badge>
+                  ) : null}
+                </div>
+                <Textarea
+                  id="meeting_link"
+                  value={meetingLinkText}
+                  onChange={(event) => setMeetingLinkText(event.target.value)}
+                  rows={3}
+                  className="rounded-xl border-slate-200 bg-white text-[14px] leading-6"
+                  placeholder={`粘贴腾讯会议转写链接信息，例如：
+转写：转写_国的快速会议
+日期：2026-04-16 14:02:16
+转写文件：https://meeting.tencent.com/ctm/ld68rgD074`}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleParseMeetingLink}
+                  >
+                    解析链接信息
+                  </Button>
+                  {meetingLinkInfo?.url ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      disabled={isFetchingTranscript}
+                      onClick={() => { void handleFetchTranscriptFromLink(); }}
+                    >
+                      {isFetchingTranscript ? "获取中..." : "尝试获取转写内容"}
+                    </Button>
+                  ) : null}
+                </div>
+                {fetchTranscriptError ? (
+                  <p className="text-xs text-amber-700">{fetchTranscriptError}</p>
+                ) : null}
               </div>
               <div className="flex items-center justify-between gap-3">
                 <Label htmlFor="transcript_text">会议转写内容</Label>

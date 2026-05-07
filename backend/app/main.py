@@ -16,6 +16,7 @@ from app.routers.materials import router as materials_router
 from app.routers.meetings import router as meetings_router
 from app.routers.projects import router as projects_router
 from app.routers.summary import router as summary_router
+from app.routers.transcript_fetch import router as transcript_fetch_router
 from app.routers.webhooks import router as webhooks_router
 
 settings = get_settings()
@@ -55,3 +56,4 @@ app.include_router(dashboard_router)
 app.include_router(demo_router)
 app.include_router(integrations_router)
 app.include_router(webhooks_router)
+app.include_router(transcript_fetch_router)

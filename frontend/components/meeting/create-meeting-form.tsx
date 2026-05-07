@@ -42,6 +42,7 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
   const [meetingLinkInfo, setMeetingLinkInfo] = useState<MeetingLinkInfo | null>(null);
   const [isFetchingTranscript, setIsFetchingTranscript] = useState(false);
   const [fetchTranscriptError, setFetchTranscriptError] = useState("");
+  const [transcriptFetched, setTranscriptFetched] = useState(false);
 
   const platformHint = useMemo(() => {
     switch (platform) {
@@ -176,20 +177,13 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
         setMeetingTime(formattedTime);
       }
     }
-
-    // Keep platform as "manual" — the link provides metadata only.
-    if (parsed.url && !transcriptText) {
-      setTranscriptText(
-        `会议转写链接：${parsed.url}\n会议标题：${parsed.title || "未知"}\n会议时间：${parsed.date || "未知"}\n\n（请在下方粘贴完整的转写文本内容，或上传转写文件）\n`
-      );
-    }
   }
 
   const doParseMeetingLink = useCallback(handleParseMeetingLink, [
-    meetingLinkText, transcriptText, formatIsoToDatetimeLocal
+    meetingLinkText, formatIsoToDatetimeLocal, title, meetingTime, transcriptText
   ]);
 
-  // Auto-parse on paste: debounce 500ms after meetingLinkText changes
+  // Debounced meta-parse on text change (no fetch — fetch only on paste or manual click)
   useEffect(() => {
     if (!meetingLinkText.trim()) {
       setMeetingLinkInfo(null);
@@ -201,17 +195,19 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
     return () => window.clearTimeout(timer);
   }, [meetingLinkText, doParseMeetingLink]);
 
-  async function handleFetchTranscriptFromLink() {
-    if (!meetingLinkInfo?.url) return;
+  async function handleFetchTranscriptFromLink(url?: string) {
+    const targetUrl = url ?? meetingLinkInfo?.url;
+    if (!targetUrl) return;
 
     setIsFetchingTranscript(true);
     setFetchTranscriptError("");
     setError("");
 
     try {
-      const result = await api.fetchTranscriptFromUrl(meetingLinkInfo.url);
+      const result = await api.fetchTranscriptFromUrl(targetUrl);
       if (result.transcript_text) {
         setTranscriptText(result.transcript_text);
+        setTranscriptFetched(true);
         if (result.title && !title) setTitle(result.title);
         if (result.meeting_time && !meetingTime) {
           const formattedTime = formatIsoToDatetimeLocal(result.meeting_time);
@@ -417,11 +413,15 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
                   value={meetingLinkText}
                   onChange={(event) => setMeetingLinkText(event.target.value)}
                   onPaste={(event) => {
-                    // Wait for the paste to commit, then parse immediately
+                    // Wait for the paste to commit, then parse + fetch immediately
                     window.setTimeout(() => {
                       const textarea = event.currentTarget;
-                      if (textarea.value.trim()) {
-                        doParseMeetingLink(textarea.value);
+                      const pasted = textarea.value.trim();
+                      if (!pasted) return;
+                      handleParseMeetingLink(pasted);
+                      const parsed = parseMeetingLink(pasted);
+                      if (parsed.url) {
+                        void handleFetchTranscriptFromLink(parsed.url);
                       }
                     }, 0);
                   }}
@@ -433,20 +433,32 @@ export function CreateMeetingForm({ projectId }: { projectId: string }) {
 转写文件：https://meeting.tencent.com/ctm/ld68rgD074`}
                 />
                 <div className="flex flex-wrap items-center gap-2">
-                  {meetingLinkInfo?.url ? (
+                  {isFetchingTranscript ? (
+                    <span className="text-xs text-teal-600 flex items-center gap-1">
+                      <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-teal-400 border-t-teal-600" />
+                      正在尝试获取转写内容...
+                    </span>
+                  ) : meetingLinkInfo?.url ? (
                     <Button
                       type="button"
-                      variant="secondary"
+                      variant="outline"
                       size="sm"
-                      disabled={isFetchingTranscript}
                       onClick={() => { void handleFetchTranscriptFromLink(); }}
                     >
-                      {isFetchingTranscript ? "获取中..." : "尝试获取转写内容"}
+                      重试获取
                     </Button>
+                  ) : null}
+                  {meetingLinkInfo?.url && !isFetchingTranscript && !fetchTranscriptError && transcriptFetched ? (
+                    <span className="text-xs text-green-600">已成功获取转写内容</span>
                   ) : null}
                 </div>
                 {fetchTranscriptError ? (
-                  <p className="text-xs text-amber-700">{fetchTranscriptError}</p>
+                  <div className="space-y-1">
+                    <p className="text-xs text-amber-700">{fetchTranscriptError}</p>
+                    <p className="text-xs text-slate-400">
+                      提示：请在腾讯会议网页中打开转写链接，选中全部转写文本（Ctrl+A），复制（Ctrl+C）后粘贴到下方「会议转写内容」文本框中。
+                    </p>
+                  </div>
                 ) : null}
               </div>
               <div className="flex items-center justify-between gap-3">
